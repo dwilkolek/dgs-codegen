@@ -18,6 +18,7 @@
 
 package com.netflix.graphql.dgs.codegen.generators.java
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.netflix.graphql.dgs.codegen.*
 import com.netflix.graphql.dgs.codegen.generators.shared.SiteTarget
 import com.netflix.graphql.dgs.codegen.generators.shared.applyDirectivesJava
@@ -379,7 +380,15 @@ abstract class BaseDataTypeGenerator(
         val getterPrefix = if (returnType == com.squareup.javapoet.TypeName.BOOLEAN && config.generateIsGetterForPrimitiveBooleanFields) "is" else "get"
         val getterName = typeUtils.transformIfDefaultClassMethodExists("${getterPrefix}${fieldDefinition.name[0].uppercase()}${fieldDefinition.name.substring(1)}", TypeUtils.Companion.getClass)
 
-        val getterMethodBuilder = MethodSpec.methodBuilder(getterName).addModifiers(Modifier.PUBLIC).returns(returnType).addStatement("return \$N", ReservedKeywordSanitizer.sanitize(fieldDefinition.name))
+        val getterMethodBuilder = MethodSpec.methodBuilder(getterName)
+            .addModifiers(Modifier.PUBLIC)
+            .addAnnotation(
+                AnnotationSpec.builder(JsonProperty::class.java)
+                    .addMember("value", CodeBlock.of("\$S", ReservedKeywordSanitizer.sanitize(fieldDefinition.name)))
+                    .build()
+            )
+            .returns(returnType)
+            .addStatement("return \$N", ReservedKeywordSanitizer.sanitize(fieldDefinition.name))
         if (fieldDefinition.overrideGetter) {
             getterMethodBuilder.addAnnotation(Override::class.java)
         }

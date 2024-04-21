@@ -18,6 +18,7 @@
 
 package com.netflix.graphql.dgs.codegen
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.netflix.graphql.dgs.codegen.generators.java.disableJsonTypeInfoAnnotation
 import com.squareup.javapoet.*
 import org.assertj.core.api.Assertions
@@ -2491,6 +2492,7 @@ class CodeGenTest {
             """
                 |package com.netflix.graphql.dgs.codegen.tests.generated.types;
                 |
+                |import com.fasterxml.jackson.annotation.JsonProperty;
                 |import com.fasterxml.jackson.annotation.JsonTypeInfo;
                 |import java.lang.Object;
                 |import java.lang.Override;
@@ -2518,6 +2520,7 @@ class CodeGenTest {
                 |    this.imdbProfile = imdbProfile;
                 |  }
                 |
+                |  @JsonProperty("firstname")
                 |  public String getFirstname() {
                 |    return firstname;
                 |  }
@@ -2526,6 +2529,7 @@ class CodeGenTest {
                 |    this.firstname = firstname;
                 |  }
                 |
+                |  @JsonProperty("lastname")
                 |  public String getLastname() {
                 |    return lastname;
                 |  }
@@ -2534,6 +2538,7 @@ class CodeGenTest {
                 |    this.lastname = lastname;
                 |  }
                 |
+                |  @JsonProperty("company")
                 |  public String getCompany() {
                 |    return company;
                 |  }
@@ -2542,6 +2547,7 @@ class CodeGenTest {
                 |    this.company = company;
                 |  }
                 |
+                |  @JsonProperty("imdbProfile")
                 |  public String getImdbProfile() {
                 |    return imdbProfile;
                 |  }
@@ -4251,8 +4257,9 @@ It takes a title and such.
         assertThat(fields[0].annotations).hasSize(1)
         val methods = person.methodSpecs
         assertThat((methods[0] as MethodSpec).name).isEqualTo("getName")
-        assertThat(methods[0].annotations).hasSize(1)
-        assertThat(((methods[0].annotations[0] as AnnotationSpec).type as ClassName).simpleName()).isEqualTo("ValidName")
+        assertThat(methods[0].annotations).hasSize(2)
+        assertThat(((methods[0].annotations[0] as AnnotationSpec).type as ClassName).simpleName()).isEqualTo("JsonProperty")
+        assertThat(((methods[0].annotations[1] as AnnotationSpec).type as ClassName).simpleName()).isEqualTo("ValidName")
     }
 
     @Test
@@ -4287,7 +4294,8 @@ It takes a title and such.
         assertThat(((fields[0].annotations[1] as AnnotationSpec).type as ClassName).canonicalName()).isEqualTo("com.test.nullValidator.NullValue")
         val methods = person.methodSpecs
         assertThat((methods[0] as MethodSpec).name).isEqualTo("getName")
-        assertThat(methods[0].annotations).hasSize(0)
+        assertThat(methods[0].annotations).hasSize(1)
+        assertThat(((methods[0].annotations[0] as AnnotationSpec).type as ClassName).simpleName()).isEqualTo("JsonProperty")
     }
 
     @Test
@@ -4318,7 +4326,8 @@ It takes a title and such.
         assertThat(fields[0].annotations).hasSize(1)
         val methods = person.methodSpecs
         assertThat((methods[0] as MethodSpec).name).isEqualTo("getName")
-        assertThat(methods[0].annotations).hasSize(0)
+        assertThat(methods[0].annotations).hasSize(1)
+        assertThat(((methods[0].annotations[0] as AnnotationSpec).type as ClassName).simpleName()).isEqualTo("JsonProperty")
         assertThat((methods[1] as MethodSpec).name).isEqualTo("setName")
         assertThat(methods[1].annotations).hasSize(1)
         assertThat(((methods[1].annotations[0] as AnnotationSpec).type as ClassName).simpleName()).isEqualTo("ValidName")
@@ -4352,7 +4361,8 @@ It takes a title and such.
         assertThat(fields[0].annotations).hasSize(1)
         val methods = person.methodSpecs
         assertThat((methods[0] as MethodSpec).name).isEqualTo("getName")
-        assertThat(methods[0].annotations).hasSize(0)
+        assertThat(methods[0].annotations).hasSize(1)
+        assertThat(((methods[0].annotations[0] as AnnotationSpec).type as ClassName).simpleName()).isEqualTo("JsonProperty")
         assertThat((methods[1] as MethodSpec).name).isEqualTo("setName")
         assertThat(methods[1].annotations).hasSize(0)
         val parameters = (methods[1] as MethodSpec).parameters
@@ -4388,7 +4398,8 @@ It takes a title and such.
         assertThat(fields[0].annotations).hasSize(1)
         val methods = person.methodSpecs
         assertThat((methods[0] as MethodSpec).name).isEqualTo("getName")
-        assertThat(methods[0].annotations).hasSize(0)
+        assertThat(methods[0].annotations).hasSize(1)
+        assertThat(((methods[0].annotations[0] as AnnotationSpec).type as ClassName).simpleName()).isEqualTo("JsonProperty")
         assertThat((methods[1] as MethodSpec).name).isEqualTo("setName")
         assertThat(methods[1].annotations).hasSize(0)
         assertThat((methods[3] as MethodSpec).name).isEqualTo("<init>")
@@ -4609,6 +4620,34 @@ It takes a title and such.
 
         val dataTypes = codeGenResult.javaDataTypes
         assertThat(dataTypes[0].typeSpec.fieldSpecs[0].initializer.toString()).isEqualTo("Locale.forLanguageTag(\"en-US\")")
+        assertCompilesJava(dataTypes)
+    }
+
+    @Test
+    fun `Properties should be annotated with JsonProperty`() {
+        val schema = """
+            type Student {
+               ESIAPassport: String
+            }
+        """.trimIndent()
+
+        val codeGenResult = CodeGen(
+            CodeGenConfig(
+                schemas = setOf(schema),
+                packageName = basePackageName
+            )
+        ).generate()
+
+        val dataTypes = codeGenResult.javaDataTypes
+        val annotations = dataTypes[0].typeSpec.methodSpecs.find { it.name == "getESIAPassport" }?.annotations
+        assertThat(annotations).isNotNull
+        assertThat(annotations).isNotEmpty
+
+        val jsonPropertyAnnotation = annotations!!.get(0)
+        assertThat(jsonPropertyAnnotation.type.toString()).isEqualTo(JsonProperty::class.java.canonicalName)
+        assertThat(jsonPropertyAnnotation.members.size).isEqualTo(1)
+
+        assertThat(jsonPropertyAnnotation.members["value"]?.first().toString()).isEqualTo("\"ESIAPassport\"")
         assertCompilesJava(dataTypes)
     }
 }
