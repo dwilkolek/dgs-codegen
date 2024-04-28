@@ -8,9 +8,11 @@ import kotlin.String
 import kotlin.collections.List
 
 public class Person(
-  public val name: String? = default<Person, String?>("name"),
-  public val age: Int? = default<Person, Int?>("age"),
-  public val car: Car? = default<Person, Car?>("car"),
+  public val name: String? = default<Person, String?>("name", ""),
+  public val age: Int? = default<Person, Int?>("age", 0),
+  public val car: Car? = default<Person, Car?>("car",
+      com.netflix.graphql.dgs.codegen.cases.inputWithDefaultValueForObject.expected.types.Car(brand
+      = "Ford")),
 ) : GraphQLInput() {
   override fun fields(): List<Pair<String, Any?>> = listOf("name" to name, "age" to age, "car" to
       car)

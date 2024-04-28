@@ -8,8 +8,8 @@ import kotlin.String
 import kotlin.collections.List
 
 public class PersonFilter(
-  public val email: String? = default<PersonFilter, String?>("email"),
-  public val birthYear: Int? = default<PersonFilter, Int?>("birthYear"),
+  public val email: String? = default<PersonFilter, String?>("email", null),
+  public val birthYear: Int? = default<PersonFilter, Int?>("birthYear", null),
 ) : GraphQLInput() {
   override fun fields(): List<Pair<String, Any?>> = listOf("email" to email, "birthYear" to
       birthYear)
