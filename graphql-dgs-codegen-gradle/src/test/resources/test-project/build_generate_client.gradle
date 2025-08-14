@@ -26,6 +26,17 @@ configurations {
     CodeGenConfiguration.exclude group: "com.netflix.graphql.dgs.codegen", module: "graphql-dgs-codegen-core"
 }
 
+repositories {
+    mavenCentral()
+    flatDir {
+        dirs 'build/extra-libs'
+    }
+}
+dependencies {
+    implementation 'com.graphql-java:graphql-java:24.2'
+    implementation(":graphql-dgs-codegen-shared-core")
+}
+
 generateJava {
     schemaPaths = ["${projectDir}/src/main/resources/schema"]
     packageName = 'com.netflix.testproject.graphql'
@@ -33,6 +44,22 @@ generateJava {
     omitNullInputFields = true
     generateDataTypes = true
     generateDocs = true
+    generateClient = true
 }
 
 codegen.clientCoreConventionsEnabled = false
+
+tasks.named("compileJava") {
+    dependsOn("copySharedCore")
+}
+tasks.register("copySharedCore", Copy) {
+    def libsDir = "../graphql-dgs-codegen-shared-core/build/libs"
+    def jar = new File(libsDir).listFiles().toList().find {
+        it.name.startsWith("graphql-dgs-codegen-shared-core") && it.name.endsWith(".jar")
+    }
+    from jar.absolutePath
+    into "build/extra-libs"
+    rename { String fileName ->
+        "graphql-dgs-codegen-shared-core.jar"
+    }
+}
